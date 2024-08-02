@@ -1,0 +1,81 @@
+import { UsePipes, ValidationPipe, Body, Controller, Get, Post, NotFoundException, ConflictException  } from '@nestjs/common';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { KmsService } from './kms.service';
+import {
+    KeyGenerateDto,
+    KeyDeleteDto,
+} from './dto/kms.dto';
+
+@Controller('kms')
+@ApiTags('AWS Key Management Service')
+export class KmsController {
+    constructor(private readonly kmsService: KmsService) {}
+
+    // TODO API 호출 최소화해야함(10,000API call $0.25)
+    @Post('/generate-key')
+    @ApiBody({ type: KeyGenerateDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Private key created successfully',
+        schema: {
+            example: {
+                message: 'Private key created successfully',
+                keyId: '1c9097c4-4d63-433e-8ccc-216a44e01a8d',
+            }
+        },
+    })
+    @UsePipes(new ValidationPipe())
+	async generateKey(@Body() keyGenerateDto: KeyGenerateDto) {
+        const { userIndex } = keyGenerateDto;
+        try {
+            const keyMetadata = await this.kmsService.findKeyByAlias(String(userIndex));
+            if (keyMetadata !== null) {
+                throw new ConflictException(`private key already exists: ${userIndex}`);
+            }
+            const keyId = await this.kmsService.generateKey();
+            return { 
+                message: 'Private key created successfully',
+                keyId: keyId
+            };
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    @Post('/delete-key')
+    @ApiBody({ type: KeyDeleteDto })
+    @ApiResponse({
+        status: 201,
+        description: "The key is scheduled to be deleted in one week",
+        schema: {
+            example: {
+                "message": "The key is scheduled to be deleted in one week",
+                "response": {
+                    "$metadata": {
+                        "httpStatusCode": 200,
+                        "requestId": "9dc79725-c961-4feb-8520-3444e1d69e9c",
+                        "attempts": 1,
+                        "totalRetryDelay": 0
+                    },
+                    "DeletionDate": "2024-08-09T11:10:52.362Z",
+                    "KeyId": "arn:aws:kms:ap-northeast-2:058264374322:key/1c9097c4-4d63-433e-8ccc-216a44e01a8d",
+                    "KeyState": "PendingDeletion",
+                    "PendingWindowInDays": 7
+                }
+            }
+        }
+    })
+    @UsePipes(new ValidationPipe())
+    async deleteKey(@Body() KeyDeleteDto: KeyDeleteDto) {
+        const { keyId } = KeyDeleteDto;
+        try {
+            const response = await this.kmsService.scheduleKeyDeletion(keyId)
+            return {
+                message: "The key is scheduled to be deleted in one week",
+                response: response
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+}
