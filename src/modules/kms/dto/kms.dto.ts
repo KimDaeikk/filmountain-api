@@ -8,6 +8,11 @@ export class KeyGenerateDto {
 }
 
 export class KeyDeleteDto {
-    @ApiProperty({ example: '1c9097c4-4d63-433e-8ccc-226e40e51a8d'})
+    @ApiProperty({ example: '1c9097c4-4d63-433e-8ccc-226e40e51a8d' })
+    keyId: string;
+}
+
+export class KeyGetDto {
+    @ApiProperty({ example: '1c9097c4-4d63-433e-8ccc-226e40e51a8d' })
     keyId: string;
 }

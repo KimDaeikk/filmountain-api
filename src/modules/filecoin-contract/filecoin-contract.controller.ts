@@ -1,31 +1,35 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { FilecoinContractService } from './filecoin-contract.service';
-// import {
-// 	UpdateListPriceDto,
-// 	UpdateMaxBidNumberDto,
-// } from './dto/config.blockchain.dto';
 
-@Controller('blockchain')
-@ApiTags('config-params')
+import {
+	DepositDto
+} from './dto/fil.dto';
+
+@Controller('fvm')
+@ApiTags('trigger transactions on fvm')
 export class FilecoinContractController {
-	// constructor(private readonly blockchainService: FilecoinContractService) {}
+	constructor(private readonly filecoinContractService: FilecoinContractService) {}
 
-	// /**
-	//  * @description: Update maximum bid number on blockchain
-	//  */
-	// @Get('/max-bid-number')
-	// async getMaxBidNumber() {
-	// 	return await this.blockchainService.getMaxBidNumber();
-	// }
-	// /**
-	//  * @description: Update maximum bid number on blockchain
-	//  */
-	// @Post('/max-bid-number')
-	// @ApiBody({ type: UpdateMaxBidNumberDto })
-	// async updateMaxBidNumber(@Body() dto: UpdateMaxBidNumberDto) {
-	// 	return await this.blockchainService.updateMaxBidNumber(dto);
-	// }
+	/**
+	 * @description: Update maximum bid number on blockchain
+	 */
+	@Post('/deposit')
+	@ApiBody({ type: DepositDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Private key created successfully',
+        schema: {
+            example: {
+                message: 'Private key created successfully',
+                keyId: '1c9097c4-4d63-433e-8ccc-216a44e01a8d',
+            }
+        },
+    })
+	async deposit(@Body() depositDto: DepositDto) {
+		const { keyId } = depositDto;
+		return await this.filecoinContractService.depositPoolV0(keyId);
+	}
 
 	// /**
 	//  * @description: Update maximum bid number on blockchain

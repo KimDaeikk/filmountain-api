@@ -1,18 +1,20 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KMSClient, CreateKeyCommand, CreateAliasCommand, ListAliasesCommand, DescribeKeyCommand, ScheduleKeyDeletionCommand, KeyMetadata, GetPublicKeyCommand, SignCommand } from "@aws-sdk/client-kms";
+import { blake2b } from 'blakejs';
+import { newAddress, validateAddressString } from '@glif/filecoin-address';
 
 @Injectable()
 export class KmsService {
     protected logger = new Logger(this.constructor.name);
     private kmsClient: KMSClient
 
-    constructor() {
+    constructor(private readonly configService: ConfigService) {
         this.kmsClient = new KMSClient({
             region: 'ap-northeast-2',
             credentials: {
-              accessKeyId: process.env.KMS_ACCESS_KEY, 
-              secretAccessKey: process.env.KMS_SECRET_ACCESS_KEY,
+              accessKeyId: configService.get<string>('KMS_ACCESS_KEY'), 
+              secretAccessKey: configService.get<string>('KMS_SECRET_ACCESS_KEY'),
             }
         });
     }
@@ -88,25 +90,29 @@ export class KmsService {
         const command = new GetPublicKeyCommand({ KeyId: keyId });
         const response = await this.kmsClient.send(command);
         return response.PublicKey as Buffer;
-      }
-    
-    async signTransaction(keyId: string, transaction: any): Promise<string> {
-    // 트랜잭션 직렬화 (예: Filecoin에서 제공하는 직렬화 도구 사용)
-    const serializedTx = FilecoinSigningTools.transactionSerialize(transaction);
+    }
 
-    // KMS로 서명 요청
-    const signCommand = new SignCommand({
-        KeyId: keyId,
-        Message: serializedTx,
-        MessageType: 'RAW',
-        SigningAlgorithm: 'ECDSA_SHA_256',
-    });
+    public getFilecoinAddress(derPublicKey: Buffer): string {
+        const rawPublicKey = derPublicKey.subarray(-65);
+        const blakeHash = blake2b(rawPublicKey, null, 20);
+        const address = newAddress(1, Buffer.from(blakeHash));
+        return address.toString();
+    }
+    
+    async signTransaction(keyId: string, message: Buffer): Promise<string> {
+        // KMS로 서명 요청
+        const signCommand = new SignCommand({
+            KeyId: keyId,
+            Message: message,
+            MessageType: 'RAW',
+            SigningAlgorithm: 'ECDSA_SHA_256',
+        });
 
-    const response = await this.kmsClient.send(signCommand);
-    
-    // 서명된 트랜잭션 반환 (필요 시 인코딩 등 추가 작업 필요)
-    const signature = response.Signature?.toString('base64');
-    
-    return signature;
+        // 서명 생성
+        const response = await this.kmsClient.send(signCommand);
+        const signature = response.Signature?.toString();
+        // base64
+
+        return signature;
     }
 }

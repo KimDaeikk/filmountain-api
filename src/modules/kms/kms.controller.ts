@@ -4,6 +4,7 @@ import { KmsService } from './kms.service';
 import {
     KeyGenerateDto,
     KeyDeleteDto,
+    KeyGetDto,
 } from './dto/kms.dto';
 
 @Controller('kms')
@@ -38,7 +39,7 @@ export class KmsController {
                 keyId: keyId
             };
         } catch (error) {
-            throw error;
+            throw error
         }
     }
 
@@ -66,8 +67,8 @@ export class KmsController {
         }
     })
     @UsePipes(new ValidationPipe())
-    async deleteKey(@Body() KeyDeleteDto: KeyDeleteDto) {
-        const { keyId } = KeyDeleteDto;
+    async deleteKey(@Body() keyDeleteDto: KeyDeleteDto) {
+        const { keyId } = keyDeleteDto;
         try {
             const response = await this.kmsService.scheduleKeyDeletion(keyId)
             return {
@@ -75,7 +76,34 @@ export class KmsController {
                 response: response
             }
         } catch (error) {
-            throw error;
+            throw error
+        }
+    }
+
+    @Post('/get-key')
+    @ApiBody({ type: KeyGetDto })
+    @ApiResponse({
+        status: 201,
+        description: "Get public key from key id",
+        schema: {
+            example: {
+                "message": "Get public key successfully",
+                "response": "f0974754"
+            }
+        }
+    })
+
+    async getPublicKey(@Body() keyGetDto: KeyGetDto) {
+        const { keyId } = keyGetDto;
+        try {
+            const derPublicKey = await this.kmsService.getPublicKey(keyId)
+            const f1Address = this.kmsService.getFilecoinAddress(derPublicKey)
+            return {
+                message: "Get public key successfully",
+                response: f1Address
+            }
+        } catch (error) {
+            throw error
         }
     }
 }
