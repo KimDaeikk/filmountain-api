@@ -1,10 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AwsKmsSigner } from "ethers-aws-kms-signer";
+import { KMSSigner } from '@hashflow/aws-kms-ethers-signer';
 import { ethers } from 'ethers';
-import { BigNumber } from '@ethersproject/bignumber';
-import { ethAddressToFilecoinAddress } from '@zondax/filecoin-signing-tools';
 import axios from 'axios';
+import { BigNumber } from 'ethers';
+const { ethAddressToFilecoinAddress } = require('@zondax/filecoin-signing-tools');
 
 // filmountain v0
 import FilmountainPoolV0ABI from './abi/filmountain-v0/FilmountainPoolV0.json';
@@ -12,78 +12,45 @@ import FilmountainAddressRegistryV0ABI from './abi/filmountain-v0/FilmountainAdd
 import FilmountainUserRegistryV0ABI from './abi/filmountain-v0/FilmountainUserRegistry.json';
 import SPVaultV0ABI from './abi/filmountain-v0/SPVaultV0.json';
 
-// import {
-// 	UpdateListPriceDto,
-// 	UpdateMaxBidNumberDto,
-// } from './dto/config.blockchain.dto';
-
 @Injectable()
 export class FilecoinContractService {
-	protected logger = new Logger(this.constructor.name)
-	private signer: AwsKmsSigner
-	private readonly poolV0abi: any;
+    protected logger = new Logger(this.constructor.name)
+    private signer: KMSSigner
+    private readonly poolV0abi: any;
     private readonly addressRegistryV0abi: any;
-	private readonly userRegistryV0abi: any;
+    private readonly userRegistryV0abi: any;
     private readonly spVaultV0abi: any;
 
-	addressRegistryV0Address = this.configService.get<string>('ADDRESS_REGISTRY_CONTRACT')
+    addressRegistryV0Address = this.configService.get<string>('ADDRESS_REGISTRY_CONTRACT')
     userRegistryV0Address = this.configService.get<string>('USER_REGISTRY_CONTRACT')
-	poolV0Address = this.configService.get<string>('POOL_V0_CONTRACT')
+    poolV0Address = this.configService.get<string>('POOL_V0_CONTRACT')
     spVaultV0Address = this.configService.get<string>('VAULT_V0_CONTRACT')
 
     providerUrl = this.configService.get<string>('PROVIDER_URL')
-	lotusProviderUrl = this.providerUrl + "/rpc/v0"
-	// ethProviderUrl = this.providerUrl + "/rpc/v1"
-	ethProviderUrl = "https://api.calibration.node.glif.io/rpc/v1"
-	
-	constructor(private readonly configService: ConfigService) {
-		this.poolV0abi = FilmountainPoolV0ABI.abi;
+    lotusProviderUrl = this.providerUrl + "/rpc/v0"
+    ethProviderUrl = this.providerUrl+"/rpc/v1"
+    
+    constructor(private readonly configService: ConfigService) {
+        this.poolV0abi = FilmountainPoolV0ABI.abi;
         this.addressRegistryV0abi = FilmountainAddressRegistryV0ABI.abi;
-		this.userRegistryV0abi = FilmountainUserRegistryV0ABI.abi;
+        this.userRegistryV0abi = FilmountainUserRegistryV0ABI.abi;
         this.spVaultV0abi = SPVaultV0ABI.abi;
-	}
-
-	// 해당 유저가 실행을 요청했을때 DB에서 유저에 맞는 개인키를 어떻게 받아올 것인지
-	private setSigner(keyId: string) {
-		
-		const provider = new ethers.providers.JsonRpcProvider(this.ethProviderUrl)
-        this.signer = new AwsKmsSigner({
-            accessKeyId: this.configService.get<string>('KMS_ACCESS_KEY'),
-            secretAccessKey: this.configService.get<string>('KMS_SECRET_ACCESS_KEY'),
-            region: 'ap-northeast-2',
-            keyId: keyId,
-        }).connect(provider);
     }
 
     private getPoolV0ContractInstance(keyId: string): ethers.Contract {
-		this.setSigner(keyId);
-		return new ethers.Contract(
-			this.poolV0Address,
-			this.poolV0abi,
-			this.signer as unknown as ethers.Signer,
-		);
-	}
+        return new ethers.Contract(
+            this.poolV0Address,
+            this.poolV0abi,
+            this.signer as unknown as ethers.Signer,
+        );
+    }
 
-	/**
-	 * @description calls the Auction contract to create productAuction Struct and to mint a NFT
-	 * @requires name
-	 * @requires seller ethereum valid address
-	 * @requires owner only administrator wallet may request
-	 */
-	async depositPoolV0(
-		keyId: string,
-	) {
-		const poolContract = this.getPoolV0ContractInstance(keyId);
-		let tx = await poolContract.deposit({value: ethers.utils.parseEther("5")});
-		console.log(tx)
-		
-		// this.logger.log(
-		// 	'creating product on blockchain for tokenId: ',
-		// 	tokenId,
-		// );
-		
-		// return tokenId;
-	}
+    async depositPoolV0(keyId: string) {
+        const poolContract = this.getPoolV0ContractInstance(keyId);
+        // ABI에 있는 정확한 함수명을 사용하여 함수를 호출합니다.
+        const tx = await poolContract['deposit()']({ value: ethers.utils.parseEther("5"), gasLimit: ethers.utils.hexlify(3000000) });
+        console.log(tx);
+    }
 
 	/**
 	 * @description update Auction contract and set this product auction as listed
