@@ -11,7 +11,9 @@ export class FilecoinClient {
     public readonly wallet: WalletTools;
 
     constructor() {
-        const connector = new HttpJsonRpcConnector({ url: rpcUrl, token });
+        const connector = new HttpJsonRpcConnector({ 
+            url: rpcUrl, 
+            token: token });
         this.address = new AddressTools();
         this.network = new NetworkTools();
         this.tx = new TxTools();
