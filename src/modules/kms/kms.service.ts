@@ -1,9 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KMSClient, CreateKeyCommand, CreateAliasCommand, ListAliasesCommand, DescribeKeyCommand, ScheduleKeyDeletionCommand, KeyMetadata, GetPublicKeyCommand, SignCommand } from "@aws-sdk/client-kms";
-import { EcdsaPubKey, EcdsaSignature } from './filecoin-client/utils/asn1';
+import { EcdsaPubKey, EcdsaSignature } from '../filecoin-client/utils/asn1';
 import { createHash } from 'crypto';
+import blake2b from 'blakejs';
 import CID from 'cids';
+import cbor from 'cbor';
 
 @Injectable()
 export class KmsService {
@@ -104,26 +106,28 @@ export class KmsService {
         return decodedTrimmedPublicKey
     }
 
-    // 메시지를 직렬화하고 해시화하는 함수
     public serializeAndHashMessage(message: object): Buffer {
-        // 메시지를 CBOR로 직렬화 (Rust 코드에서는 to_vec 사용)
-        const serializedMessage = Buffer.from(JSON.stringify(message)); // 단순 JSON 직렬화 (CBOR 필요시 적절한 라이브러리 사용)
-
+        // 메시지를 CBOR로 직렬화
+        const serializedMessage: Uint8Array = cbor.encode(message);
+    
+        // Uint8Array를 Buffer로 변환
+        const serializedBuffer = Buffer.from(serializedMessage);
+    
         // 메시지 해시를 생성 (Blake2b-256 해시)
-        const hash = createHash('blake2b256').update(serializedMessage).digest();
-
+        const hash: Uint8Array = blake2b.blake2b(serializedBuffer, null, 32);
+    
+        // Uint8Array를 Buffer로 변환
+        const hashBuffer = Buffer.from(hash);
+    
         // CID 생성 (v1, dag-cbor)
-        const cid = new CID(1, 'dag-cbor', hash);
-
+        const cid = new CID(1, 'dag-cbor', hashBuffer);
+    
         // CID의 바이트를 해시화
-        return createHash('blake2b256').update(cid.bytes).digest();
+        return Buffer.from(blake2b.blake2b(cid.bytes, null, 32));
     }
 
     // AWS KMS를 사용해 트랜잭션에 서명하는 함수
-    async signWithKMS(message: object, keyId: string, region: string): Promise<Uint8Array> {
-        // KMS 클라이언트 초기화
-        const kmsClient = new KMSClient({ region });
-
+    async signWithKMS(keyId: string, message: object): Promise<Uint8Array> {
         // 메시지 해시 생성
         const messageDigest = this.serializeAndHashMessage(message);
 
@@ -135,7 +139,7 @@ export class KmsService {
             Message: messageDigest,
         });
 
-        const response = await kmsClient.send(signCommand);
+        const response = await this.kmsClient.send(signCommand);
         const signature = response.Signature;
 
         if (!signature) {
@@ -143,5 +147,14 @@ export class KmsService {
         }
 
         return signature
+    }
+
+    public decodeKMSSignature(signature: Uint8Array): { r: string, s: string } {
+        // ASN.1 DER 형식을 파싱하여 r과 s 값 추출
+        const decodedSignature = EcdsaSignature.decode(Buffer.from(signature), 'der');
+        const r: string = decodedSignature.r.toString(16);
+        const s: string = decodedSignature.s.toString(16);
+        
+        return { r, s };
     }
 }

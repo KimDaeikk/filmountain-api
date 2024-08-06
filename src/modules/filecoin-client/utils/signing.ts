@@ -43,7 +43,7 @@ export function addressAsBytes(address: Address) {
     switch (Number(protocolIndicator)) {
         case ProtocolIndicator.ID:
             if (address.length > 18) {
-                throw new InvalidPayloadLength();
+                // throw new InvalidPayloadLength();
             }
             return Buffer.concat([
                 Buffer.from(protocolIndicatorByte, "hex"),
@@ -56,7 +56,7 @@ export function addressAsBytes(address: Address) {
             checksum = Buffer.from(addressDecoded.slice(-4));
 
             if (payload.byteLength !== 20) {
-                throw new InvalidPayloadLength();
+                // throw new InvalidPayloadLength();
             }
             break;
         case ProtocolIndicator.ACTOR:
@@ -66,19 +66,19 @@ export function addressAsBytes(address: Address) {
             checksum = Buffer.from(addressDecoded.slice(-4));
 
             if (payload.byteLength !== 20) {
-                throw new InvalidPayloadLength();
+                // throw new InvalidPayloadLength();
             }
             break;
         case ProtocolIndicator.BLS:
-            throw new ProtocolNotSupported("BLS");
+            // throw new ProtocolNotSupported("BLS");
         default:
-            throw new UnknownProtocolIndicator();
+            // throw new UnknownProtocolIndicator();
     }
 
     const bytesAddress = Buffer.concat([Buffer.from(protocolIndicatorByte, "hex"), Buffer.from(payload)]);
 
     if (getChecksum(bytesAddress).toString("hex") !== checksum.toString("hex")) {
-        throw new InvalidChecksumAddress();
+        // throw new InvalidChecksumAddress();
     }
 
     return bytesAddress;

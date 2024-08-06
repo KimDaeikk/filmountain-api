@@ -1,6 +1,5 @@
 import { UsePipes, ValidationPipe, Body, Controller, Get, Post, NotFoundException, ConflictException  } from '@nestjs/common';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { FilecoinClient } from "./filecoin-client/index";
 import { KmsService } from './kms.service';
 import {
     KeyGenerateDto,
@@ -11,7 +10,7 @@ import {
 @Controller('kms')
 @ApiTags('AWS Key Management Service')
 export class KmsController {
-    constructor(private readonly filecoinClient: FilecoinClient, private readonly kmsService: KmsService) {}
+    constructor(private readonly kmsService: KmsService) {}
 
     // TODO API 호출 최소화해야함(10,000API call $0.25)
     @Post('/generate-key')
@@ -99,15 +98,29 @@ export class KmsController {
         const { keyId } = keyGetDto;
         try {
             const derPublicKey = await this.kmsService.getPublicKey(keyId)
-            const f1Address = this.filecoinClient.address.publicKeyToFilecoinAddress(derPublicKey, "testnet")
             return {
-                message: "Get f1 address successfully",
+                message: "Get  successfully",
                 response: {
-                    f1Address: f1Address
+                    publicKey: derPublicKey
                 }
             }
         } catch (error) {
             throw error
         }
     }
+    // async getF1Address(@Body() keyGetDto: KeyGetDto) {
+    //     const { keyId } = keyGetDto;
+    //     try {
+    //         const derPublicKey = await this.kmsService.getPublicKey(keyId)
+    //         const f1Address = this.filecoinClient.address.publicKeyToFilecoinAddress(derPublicKey, "testnet")
+    //         return {
+    //             message: "Get f1 address successfully",
+    //             response: {
+    //                 f1Address: f1Address
+    //             }
+    //         }
+    //     } catch (error) {
+    //         throw error
+    //     }
+    // }
 }

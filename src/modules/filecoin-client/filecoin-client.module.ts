@@ -9,4 +9,4 @@ import { FilecoinClientService } from './filecoin-client.service';
 	providers: [FilecoinClientService],
 	exports: [FilecoinClientService],
 })
-export class FilecoinContractModule {}
+export class FilecoinClientModule {}

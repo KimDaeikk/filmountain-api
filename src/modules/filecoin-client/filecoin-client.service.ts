@@ -33,7 +33,7 @@ export class FilecoinClientService {
     }
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- ADDRESS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    public publicKeyToFilecoinAddress(decodedTrimmedPublicKey: Buffer, network: "mainnet" | "testnet"): string {
+    public publicKeyToFilecoinAddress(decodedTrimmedPublicKey: Buffer, network: Network): string {
         // 공개키를 BLAKE2b-160 해시로 변환
         const blake2bHash = blake2b(decodedTrimmedPublicKey, null, 20); // 20바이트 출력
     
@@ -71,16 +71,6 @@ export class FilecoinClientService {
         return f0Address
     }
 
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- KMS SIGNATURE PARSING -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    public decodeKMSSignature(signature: Uint8Array): { r: string, s: string } {
-        // ASN.1 DER 형식을 파싱하여 r과 s 값 추출
-        const decodedSignature = EcdsaSignature.decode(Buffer.from(signature), 'der');
-        const r: string = decodedSignature.r.toString(16);
-        const s: string = decodedSignature.s.toString(16);
-        
-        return { r, s };
-    }
-
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- FVM MESSAGE -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     async createMessage(message: MessagePartial): Promise<{
         message: Message;
@@ -89,8 +79,8 @@ export class FilecoinClientService {
     }> {
         let msg: Message = {
             Version: message.Version ? message.Version : 0,
-            To: message.To,
             From: message.From,
+            To: message.To,
             Value: message.Value ? message.Value : new BigNumber(0),
             GasLimit: message.GasLimit ? message.GasLimit : 0,
             GasFeeCap: message.GasFeeCap ? message.GasFeeCap : new BigNumber(0),
@@ -99,29 +89,22 @@ export class FilecoinClientService {
             Params: message.Params ? message.Params : '',
             Nonce: message.Nonce ? message.Nonce : await this.lotusClient.mpool.getNonce(message.From),
         }
-        const estimatedObject = await this.estimateTotalGasFee(msg)
-        return estimatedObject;
+        const messageObject = await this.estimateTotalGasFee(msg)
+        return messageObject;
     }
 
     public createBasicSendMessage(
-        to: string,
         from: string,
-        value: BigNumber,
-    ): Message {
-        const unsignedMessage: Message = {
-            Version: 0,
-            To: to, // 수신자 주소
+        to: string,
+        value: string,
+    ): MessagePartial {
+        const messagePartial: MessagePartial = {
             From: from, // 송신자 주소
-            Value: value, // 송금할 FIL (attoFIL 단위)
-            GasLimit: null, // 가스 한도
-            GasFeeCap: null, // 가스 가격 상한
-            GasPremium: null, // 가스 프리미엄
-            Method: 0, // 메서드 0은 기본 송금
-            Params: "", // 기본 송금이므로 추가 파라미터 없음
-            Nonce: 1, // 트랜잭션 Nonce (송신자의 계정에서 고유해야 함)
+            To: to, // 수신자 주소
+            Value: BigNumber(value), // 송금할 FIL (attoFIL 단위)
         };
 
-        return unsignedMessage
+        return messagePartial
     }
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- FVM TRANSACTION -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
