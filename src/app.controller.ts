@@ -23,9 +23,10 @@ export class AppController {
 		const userF1Address = this.filecoinClientService.publicKeyToFilecoinAddress(decodedTrimmedPublicKey, "testnet")
 		const sendMessagePartial = this.filecoinClientService.createBasicSendMessage(userF1Address, to, value)
 		const messageObject = await this.filecoinClientService.createMessage(sendMessagePartial)
-		// const signature = await this.kmsService.signWithKMS(keyId, messageObject.message)
-		// const signatureObject = this.kmsService.decodeKMSSignature(signature)
-		// const result = await this.filecoinClientService.sendTransactionToLotus(signatureObject.r, signatureObject.s, messageObject.message)
-		// return result
+		const cidHash = this.kmsService.hashCidBytes(messageObject.message)
+		const signature = await this.kmsService.signWithKMS(keyId, messageObject.message)
+		const signatureObject = this.kmsService.decodeKMSSignature(signature)
+		const result = await this.filecoinClientService.sendTransactionToLotus(signatureObject.r, signatureObject.s, messageObject.message)
+		return result
 	}
 }

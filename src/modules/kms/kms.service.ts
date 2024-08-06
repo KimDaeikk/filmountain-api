@@ -3,9 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { KMSClient, CreateKeyCommand, CreateAliasCommand, ListAliasesCommand, DescribeKeyCommand, ScheduleKeyDeletionCommand, KeyMetadata, GetPublicKeyCommand, SignCommand } from "@aws-sdk/client-kms";
 import { EcdsaPubKey, EcdsaSignature } from '../filecoin-client/utils/asn1';
 import { createHash } from 'crypto';
-import blake2b from 'blakejs';
-import CID from 'cids';
-import cbor from 'cbor';
+import blake from 'blakejs';
+import { CID } from 'multiformats/cid';
+import * as Digest from 'multiformats/hashes/digest';
+import { sha256 } from 'multiformats/hashes/sha2';
+import { encode as encodeCBOR } from '@ipld/dag-cbor';
+import { Message } from '../filecoin-client/utils/types/types';
+import * as elliptic from 'elliptic';
 
 @Injectable()
 export class KmsService {
@@ -106,47 +110,84 @@ export class KmsService {
         return decodedTrimmedPublicKey
     }
 
-    public serializeAndHashMessage(message: object): Buffer {
-        // 메시지를 CBOR로 직렬화
-        const serializedMessage: Uint8Array = cbor.encode(message);
-    
-        // Uint8Array를 Buffer로 변환
-        const serializedBuffer = Buffer.from(serializedMessage);
-    
-        // 메시지 해시를 생성 (Blake2b-256 해시)
-        const hash: Uint8Array = blake2b.blake2b(serializedBuffer, null, 32);
-    
-        // Uint8Array를 Buffer로 변환
-        const hashBuffer = Buffer.from(hash);
-    
-        // CID 생성 (v1, dag-cbor)
-        const cid = new CID(1, 'dag-cbor', hashBuffer);
-    
-        // CID의 바이트를 해시화
-        return Buffer.from(blake2b.blake2b(cid.bytes, null, 32));
+    // 메시지를 CBOR로 직렬화
+    public serializeMessage(message: Message): Uint8Array {
+        return encodeCBOR(message);
+    }
+
+    // CID 생성
+    public createCID(message: Message): CID {
+        const serializedMessage = this.serializeMessage(message);
+        const hash = blake.blake2b(serializedMessage, null, 32); // Blake2b-256 해싱
+
+        // Multihash로 변환
+        const multihashDigest = Digest.create(0xb220, hash); // 0xb220은 Blake2b-256의 multicodec 코드
+
+        return CID.createV1(0x71, multihashDigest);  // 0x71은 DAG-CBOR 멀티코드
+    }
+
+    // Blake2b-256 해싱 후 CID의 바이트 배열을 다시 해싱
+    public hashCidBytes(message: Message): Uint8Array {
+        const cid = this.createCID(message);
+        return blake.blake2b(cid.bytes, null, 32); // CID 바이트 배열에 대해 Blake2b-256 해싱
+    }
+
+    public uint8ArrayToHex(array: Uint8Array): string {
+        return Array.from(array)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
     }
 
     // AWS KMS를 사용해 트랜잭션에 서명하는 함수
-    async signWithKMS(keyId: string, message: object): Promise<Uint8Array> {
-        // 메시지 해시 생성
-        const messageDigest = this.serializeAndHashMessage(message);
-
+    async signWithKMS(keyId: string, cidHash: Uint8Array): Promise<{ signature: Uint8Array, recoveryId: number }> {
+        const ec = new elliptic.ec('secp256k1');
         // KMS에서 서명 생성
         const signCommand = new SignCommand({
             KeyId: keyId,
             SigningAlgorithm: 'ECDSA_SHA_256',
             MessageType: 'DIGEST',
-            Message: messageDigest,
+            Message: cidHash,
         });
 
         const response = await this.kmsClient.send(signCommand);
-        const signature = response.Signature;
-
-        if (!signature) {
-            throw new Error('Could not fetch signature from KMS.');
+    
+        // DER 디코딩하여 r과 s 값을 추출
+        const signature = new Uint8Array(response.Signature);
+        const rLength = signature[3];
+        const r = signature.slice(4, 4 + rLength);
+        const s = signature.slice(4 + rLength + 2);
+    
+        // 공개 키 가져오기 (AWS KMS에서)
+        const publicKey = await this.getPublicKey(keyId);
+    
+        // 복구 ID 계산
+        let recoveryId = -1;
+        for (let i = 0; i < 4; i++) {
+        const key = ec.recoverPubKey(
+            cidHash, // cidHash는 이미 Uint8Array 형태여야 합니다.
+            { 
+                r: this.uint8ArrayToHex(r), 
+                s: this.uint8ArrayToHex(s)
+            },
+            i
+        );
+        if (key.encode('hex', true) === publicKey) { // compressed public key format
+            recoveryId = i;
+            break;
         }
-
-        return signature
+    }
+    
+        if (recoveryId === -1) {
+            throw new Error('Failed to calculate recovery id');
+        }
+    
+        // 65바이트 서명 생성 (r + s + recoveryId)
+        const signatureBytes = new Uint8Array(65);
+        signatureBytes.set(r, 0);
+        signatureBytes.set(s, 32);
+        signatureBytes[64] = recoveryId;
+    
+        return { signature: signatureBytes, recoveryId };
     }
 
     public decodeKMSSignature(signature: Uint8Array): { r: string, s: string } {
