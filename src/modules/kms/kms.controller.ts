@@ -27,6 +27,7 @@ export class KmsController {
     })
     @UsePipes(new ValidationPipe())
 	async generateKey(@Body() keyGenerateDto: KeyGenerateDto) {
+        // API CALL 3회
         const { userIndex } = keyGenerateDto;
         try {
             const keyMetadata = await this.kmsService.findKeyByAlias(String(userIndex));
@@ -34,6 +35,7 @@ export class KmsController {
                 throw new ConflictException(`private key already exists: ${userIndex}`);
             }
             const keyId = await this.kmsService.generateKey();
+            await this.kmsService.createAlias(String(userIndex), keyId)
             return { 
                 message: 'Private key created successfully',
                 keyId: keyId
@@ -68,6 +70,7 @@ export class KmsController {
     })
     @UsePipes(new ValidationPipe())
     async deleteKey(@Body() keyDeleteDto: KeyDeleteDto) {
+        // API CALL 1회
         const { keyId } = keyDeleteDto;
         try {
             const response = await this.kmsService.scheduleKeyDeletion(keyId)

@@ -1,23 +1,24 @@
-import axios from 'axios';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ethers } from 'ethers';
-import { blake2b, blake2bInit, blake2bUpdate, blake2bFinal } from 'blakejs';
-import cbor from "ipld-dag-cbor";
-import { BigNumber } from 'bignumber.js';
-import { multihash } from "multihashing-async";
-import { HttpJsonRpcConnector, LotusClient } from "filecoin.js";
-import { Address, CodeCID, INIT_ACTOR, InitMethod, Message, MessageResponse, MsgLookup, MsgParams, Network, TokenAmount } from "./utils/types/types";
-import { addressAsBytes, serializeBigNum, getDigest } from './utils/signing';
-import { Cid, MessagePartial, MethodMultisig } from 'filecoin.js/builds/dist/providers/Types';
-import { EcdsaSignature } from './utils/asn1';
-const { newAddress, ethAddressFromID, newDelegatedEthAddress, ethAddressFromDelegated } = require('@glif/filecoin-address')
+// import axios from 'axios';
+// import { ethers } from 'ethers';
+// import { blake2b, blake2bInit, blake2bUpdate, blake2bFinal } from 'blakejs';
+// import cbor from "ipld-dag-cbor";
+// import { BigNumber } from 'bignumber.js';
+// import { multihash } from "multihashing-async";
+// import { Address, CodeCID, INIT_ACTOR, InitMethod, Message, MessageResponse, MsgLookup, MsgParams, Network, TokenAmount } from "./utils/types/types";
+// import { addressAsBytes, serializeBigNum, getDigest } from './utils/signing';
+// import { Cid, MessagePartial, MethodMultisig } from 'filecoin.js/builds/dist/providers/Types';
+// import { EcdsaSignature } from './utils/asn1';
+// const { newAddress, ethAddressFromID, newDelegatedEthAddress, ethAddressFromDelegated } = require('@glif/filecoin-address')
+// import { HttpJsonRpcConnector, LotusClient } from "filecoin.js";
+import { KMSSigner } from '@hashflow/aws-kms-ethers-signer';
+import { ethers } from "ethers";
 
 
 @Injectable()
 export class FilecoinClientService {
     protected logger = new Logger(this.constructor.name)
-    private readonly lotusClient: LotusClient;
 
     private readonly providerUrl = this.configService.get<string>('PROVIDER_URL')
     private readonly lotusProviderUrl = this.providerUrl + "/rpc/v0"
@@ -25,14 +26,14 @@ export class FilecoinClientService {
     private readonly lotusToken = this.configService.get<string>("LOTUS_TOKEN")
     
     constructor(private readonly configService: ConfigService) {
-        const connector = new HttpJsonRpcConnector({
-            url: this.lotusProviderUrl, 
-            token: this.lotusToken
-        });
-        this.lotusClient = new LotusClient(connector);
+        // const connector = new HttpJsonRpcConnector({
+        //     url: this.lotusProviderUrl, 
+        //     token: this.lotusToken
+        // });
+        // this.lotusClient = new LotusClient(connector);
     }
 
-    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- ADDRESS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    /* // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- ADDRESS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     public publicKeyToFilecoinAddress(decodedTrimmedPublicKey: Buffer, network: Network): string {
         // 공개키를 BLAKE2b-160 해시로 변환
         const blake2bHash = blake2b(decodedTrimmedPublicKey, null, 20); // 20바이트 출력
@@ -231,7 +232,7 @@ export class FilecoinClientService {
         blake2bUpdate(blakeCtx, serializedproposalHashData);
         const hash = Buffer.from(blake2bFinal(blakeCtx));
         return hash
-    }
+    } */
 
     // // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- MULTISIG TRANSACTION -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     // public async msigProposeTransfer(

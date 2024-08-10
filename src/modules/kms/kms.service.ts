@@ -16,8 +16,8 @@ export class KmsService {
         this.kmsClient = new KMSClient({
             region: 'ap-northeast-2',
             credentials: {
-              accessKeyId: this.configService.get<string>('KMS_ACCESS_KEY'), 
-              secretAccessKey: this.configService.get<string>('KMS_SECRET_ACCESS_KEY'),
+                accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY'), 
+                secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY'),
             }
         });
     }

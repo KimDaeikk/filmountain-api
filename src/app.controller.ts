@@ -18,11 +18,11 @@ export class AppController {
 	@Post("just-send")
 	@ApiBody({ type: JustSendDto })
 	async justSend(@Body() justSendDto: JustSendDto) {
-		const { keyId, to, value } = justSendDto
-		const decodedTrimmedPublicKey = await this.kmsService.getPublicKey(keyId)
-		const userF1Address = this.filecoinClientService.publicKeyToFilecoinAddress(decodedTrimmedPublicKey, "testnet")
-		const sendMessagePartial = this.filecoinClientService.createBasicSendMessage(userF1Address, to, value)
-		const messageObject = await this.filecoinClientService.createMessage(sendMessagePartial)
+	// 	const { keyId, to, value } = justSendDto
+	// 	const decodedTrimmedPublicKey = await this.kmsService.getPublicKey(keyId)
+	// 	const userF1Address = this.filecoinClientService.publicKeyToFilecoinAddress(decodedTrimmedPublicKey, "testnet")
+	// 	const sendMessagePartial = this.filecoinClientService.createBasicSendMessage(userF1Address, to, value)
+	// 	const messageObject = await this.filecoinClientService.createMessage(sendMessagePartial)
 		// const signature = await this.kmsService.signWithKMS(keyId, messageObject.message)
 		// const signatureObject = this.kmsService.decodeKMSSignature(signature)
 		// const result = await this.filecoinClientService.sendTransactionToLotus(signatureObject.r, signatureObject.s, messageObject.message)
