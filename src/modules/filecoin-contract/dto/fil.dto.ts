@@ -19,9 +19,17 @@ export class WithdrawV0Dto {
     amount: string;
 }
 
-export class SetPoolDto {
+export class SetAddressDto {
     msigExecuteKeyId: string;
     msigSigningKeyId: string;
-    poolAddress: string;
     msigTxIndex: string;
+    poolAddress: string;
+}
+
+export class MsigTransferDto {
+    msigExecuteKeyId: string;
+    msigSigningKeyId: string;
+    msigTxIndex: string;
+    toAddress: string;
+    amount: string;
 }

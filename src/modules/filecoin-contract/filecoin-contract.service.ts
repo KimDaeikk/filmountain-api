@@ -11,7 +11,6 @@ import FilmountainAddressRegistryV0ABI from './abi/filmountain-v0/FilmountainAdd
 import FilmountainUserRegistryV0ABI from './abi/filmountain-v0/FilmountainUserRegistry.json';
 import SPVaultV0ABI from './abi/filmountain-v0/SPVaultV0.json';
 import MultiSigWalletABI from './abi/msig/MultiSigWallet.json';
-import BigNumber from 'bignumber.js';
 
 @Injectable()
 export class FilecoinContractService {
@@ -28,6 +27,7 @@ export class FilecoinContractService {
     spVaultV0Address = this.configService.get<string>('VAULT_V0_CONTRACT')
     multiSigAddress = this.configService.get<string>("MSIG_CONTRACT")
 
+    gasLimit = this.configService.get<string>("GAS_LIMIT")
     chainId = this.configService.get<string>("CHAIN_ID")
     providerUrl = this.configService.get<string>('PROVIDER_URL')
     lotusProviderUrl = this.providerUrl + "/rpc/v0"
@@ -113,9 +113,10 @@ export class FilecoinContractService {
         toAddress: string,
         amount: string,    
         data: string,   
-    ) {
+    ): (Promise<string>) {
         const signer = await this.getSigner(keyId);
         const contract = await this.getMultiSigContractInstance(keyId);
+        const transactionIndex = await contract.getTransactionCount();
         const nonce = await this.provider.getTransactionCount(await signer.getAddress());
         const feeData = await this.provider.getFeeData();
         // 실행시키려는 MultiSig의 함수
@@ -129,7 +130,7 @@ export class FilecoinContractService {
         const tx = {
             to: this.multiSigAddress,
             value: amount,
-            gasLimit: 90000000,
+            gasLimit: this.gasLimit,
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
             nonce: nonce, 
@@ -147,10 +148,11 @@ export class FilecoinContractService {
             // 트랜잭션 실패
             console.log(txReceipt);
             console.error('Transaction failed with status 0 (revert).');
-            return
+            return null;
         } else {
             // 트랜잭션 성공
             console.log('Transaction successful:', receipt);
+            return transactionIndex;
         }
     }
 
@@ -171,7 +173,7 @@ export class FilecoinContractService {
         const tx = {
             to: this.multiSigAddress,
             value: amount,
-            gasLimit: 90000000,
+            gasLimit: this.gasLimit,
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
             nonce: nonce, 
@@ -213,7 +215,7 @@ export class FilecoinContractService {
         const tx = {
             to: this.multiSigAddress,
             value: amount,
-            gasLimit: 90000000,
+            gasLimit: this.gasLimit,
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
             nonce: nonce, 
@@ -248,7 +250,7 @@ export class FilecoinContractService {
         const tx = {
             to: this.poolV0Address,
             value: amount,
-            gasLimit: 90000000, // TODO 하드코딩 아니여야함
+            gasLimit: this.gasLimit, // TODO 하드코딩 아니여야함
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
             nonce: nonce, // 트랜잭션 넘버
@@ -287,12 +289,30 @@ export class FilecoinContractService {
         return { poolV0Address, contractArguments }
 	}
 
-    async getAddressRegistrySetVaultSignature() {
-
+    async getAddressRegistrySetVaultSignature(keyId: string, vaultAddress: string) {
+        // 해당 컨트랙트의 function selector를 가져오기 위해서
+        const addressRegistryContract = await this.getAddressRegistryContractInstance(keyId);
+        // sequence id를 가져오기 위해서
+        const poolV0Address = this.addressRegistryV0Address
+        // MultiSig에서 실행시킬 함수 data
+        const contractArguments = addressRegistryContract.interface.encodeFunctionData("setVault(address)", [
+            vaultAddress
+        ]);
+		
+        return { poolV0Address, contractArguments }
     }
 
-    async getAddressRegistrySetZcSignature() {
-
+    async getAddressRegistrySetZcSignature(keyId: string, zcAddress: string) {
+        // 해당 컨트랙트의 function selector를 가져오기 위해서
+        const addressRegistryContract = await this.getAddressRegistryContractInstance(keyId);
+        // sequence id를 가져오기 위해서
+        const poolV0Address = this.addressRegistryV0Address
+        // MultiSig에서 실행시킬 함수 data
+        const contractArguments = addressRegistryContract.interface.encodeFunctionData("setZC(address)", [
+            zcAddress
+        ]);
+		
+        return { poolV0Address, contractArguments }
     }
 
     // -=-=- USER REGISTRY -=-=-

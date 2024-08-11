@@ -5,7 +5,8 @@ import { FilecoinContractService } from './filecoin-contract.service';
 import {
 	DepositV0Dto,
 	GetEthAddressDto,
-	SetPoolDto,
+	MsigTransferDto,
+	SetAddressDto,
 	WithdrawV0Dto
 } from './dto/fil.dto';
 
@@ -19,6 +20,14 @@ export class FilecoinContractController {
 	async getEthAddress(@Body() getEthAddressDto: GetEthAddressDto) {
 		const { keyId } = getEthAddressDto;
 		return await this.filecoinContractService.getEthAddress(keyId)
+	}
+
+	@Post('/msig-transfer')
+	async multiSigTransfer(@Body() msigTransferDto: MsigTransferDto) {
+		const { msigExecuteKeyId, msigSigningKeyId, msigTxIndex, toAddress, amount } = msigTransferDto;
+		await this.filecoinContractService.submitTransaction(msigExecuteKeyId, toAddress, amount, "");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, msigTxIndex, "0");
+		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, msigTxIndex, "0");
 	}
 	
 	// -=-=-=-=-=-=-=-=-=-=-=- Filmountain USER TRANSACTION -=-=-=-=-=-=-=-=-=-=-=-
@@ -42,23 +51,60 @@ export class FilecoinContractController {
 	// -=-=-=-=-=-=-=-=-=-=-=- Filmountain ADMIN TRANSACTION -=-=-=-=-=-=-=-=-=-=-=-
 	// -=-=- ADDRESS REGISTRY -=-=-
 	@Post('/addr-reg-set-pool')
-	@ApiBody({ type: SetPoolDto })
-	async setPool(@Body() setPoolDto: SetPoolDto) {
-		const { msigExecuteKeyId, msigSigningKeyId, poolAddress, msigTxIndex } = setPoolDto
+	@ApiBody({ type: SetAddressDto })
+	async setPool(@Body() setAddressDto: SetAddressDto) {
+		const { msigExecuteKeyId, msigSigningKeyId, poolAddress } = setAddressDto
 		const { 
 			poolV0Address,
 			contractArguments
 		} = await this.filecoinContractService.getAddressRegistrySetPoolSignature(msigSigningKeyId, poolAddress);
-		await this.filecoinContractService.submitTransaction(msigExecuteKeyId, poolV0Address, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, msigTxIndex, "0");
-		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, msigTxIndex, "0");	
+		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, poolV0Address, "0", contractArguments);
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
+	}
+
+	@Post('/addr-reg-set-vault')
+	@ApiBody({ type: SetAddressDto })
+	async setVault(@Body() setAddressDto: SetAddressDto) {
+		const { msigExecuteKeyId, msigSigningKeyId, poolAddress } = setAddressDto
+		const { 
+			poolV0Address,
+			contractArguments
+		} = await this.filecoinContractService.getAddressRegistrySetPoolSignature(msigSigningKeyId, poolAddress);
+		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, poolV0Address, "0", contractArguments);
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
+	}
+
+	@Post('/addr-reg-set-zc')
+	@ApiBody({ type: SetAddressDto })
+	async setZC(@Body() setAddressDto: SetAddressDto) {
+		const { msigExecuteKeyId, msigSigningKeyId, poolAddress } = setAddressDto
+		const { 
+			poolV0Address,
+			contractArguments
+		} = await this.filecoinContractService.getAddressRegistrySetPoolSignature(msigSigningKeyId, poolAddress);
+		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, poolV0Address, "0", contractArguments);
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
 	}
 
 	// -=-=- USER REGISTRY -=-=-
+	async addUser(@Body setAddressDto: SetAddressDto) {
+		const { msigExecuteKeyId, msigSigningKeyId, poolAddress } = setAddressDto
+		const {
+			
+			contractArguments
+		} = await this.filecoinContractService.getUserRegistryAddUserSignature(msig)
+	}
+
+	async removeUser() {
+
+	}
 
 	// -=-=- POOL V0 -=-=-
 	@Post('/pool-v0-withdraw')
-	@ApiBody({ type: SetPoolDto })
+	@ApiBody({ type: WithdrawV0Dto })
 	async withdrawV0(@Body() withdrawDto: WithdrawV0Dto) {
 		const { msigExecuteKeyId, msigSigningKeyId, msigTxIndex, fromEthAddress, toEthAddress, amount } = withdrawDto
 		const { 
@@ -71,4 +117,11 @@ export class FilecoinContractController {
 	}
 
 	// -=-=- SP VAULT V0 -=-=-
+	async payInterestV0() {
+
+	}
+
+	async payPrincipalV0() {
+
+	}
 }
