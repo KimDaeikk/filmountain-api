@@ -280,58 +280,76 @@ export class FilecoinContractService {
         // 해당 컨트랙트의 function selector를 가져오기 위해서
         const addressRegistryContract = await this.getAddressRegistryContractInstance(keyId);
         // sequence id를 가져오기 위해서
-        const poolV0Address = this.addressRegistryV0Address
+        const addressRegistryAddress = this.addressRegistryV0Address
         // MultiSig에서 실행시킬 함수 data
         const contractArguments = addressRegistryContract.interface.encodeFunctionData("setPool(address)", [
             poolAddress
         ]);
 		
-        return { poolV0Address, contractArguments }
+        return { addressRegistryAddress, contractArguments }
 	}
 
     async getAddressRegistrySetVaultSignature(keyId: string, vaultAddress: string) {
         // 해당 컨트랙트의 function selector를 가져오기 위해서
         const addressRegistryContract = await this.getAddressRegistryContractInstance(keyId);
         // sequence id를 가져오기 위해서
-        const poolV0Address = this.addressRegistryV0Address
+        const addressRegistryAddress = this.addressRegistryV0Address
         // MultiSig에서 실행시킬 함수 data
         const contractArguments = addressRegistryContract.interface.encodeFunctionData("setVault(address)", [
             vaultAddress
         ]);
 		
-        return { poolV0Address, contractArguments }
+        return { addressRegistryAddress, contractArguments }
     }
 
     async getAddressRegistrySetZcSignature(keyId: string, zcAddress: string) {
         // 해당 컨트랙트의 function selector를 가져오기 위해서
         const addressRegistryContract = await this.getAddressRegistryContractInstance(keyId);
         // sequence id를 가져오기 위해서
-        const poolV0Address = this.addressRegistryV0Address
+        const addressRegistryAddress = this.addressRegistryV0Address
         // MultiSig에서 실행시킬 함수 data
         const contractArguments = addressRegistryContract.interface.encodeFunctionData("setZC(address)", [
             zcAddress
         ]);
 		
-        return { poolV0Address, contractArguments }
+        return { addressRegistryAddress, contractArguments }
     }
 
     // -=-=- USER REGISTRY -=-=-
-    async getUserRegistryAddUserSignature() {
-
+    async getUserRegistryAddUserSignature(keyId: string, userAddress: string) {
+        // 해당 컨트랙트의 function selector를 가져오기 위해서
+        const userRegistryContract = await this.getUserRegistryContractInstance(keyId);
+        // sequence id를 가져오기 위해서
+        const userRegistryAddress = this.userRegistryV0Address
+        // MultiSig에서 실행시킬 함수 data
+        const contractArguments = userRegistryContract.interface.encodeFunctionData("addUser(address)", [
+            userAddress
+        ]);
+		
+        return { userRegistryAddress, contractArguments }
     }
 
-    async getUserRegistryRemoveUserSignature() {
-
+    async getUserRegistryRemoveUserSignature(keyId: string, userAddress: string) {
+        // 해당 컨트랙트의 function selector를 가져오기 위해서
+        const userRegistryContract = await this.getUserRegistryContractInstance(keyId);
+        // sequence id를 가져오기 위해서
+        const userRegistryAddress = this.userRegistryV0Address
+        // MultiSig에서 실행시킬 함수 data
+        const contractArguments = userRegistryContract.interface.encodeFunctionData("removeUser(address)", [
+            userAddress
+        ]);
+		
+        return { userRegistryAddress, contractArguments }
     }
 
     // -=-=- POOL V0 -=-=-
     async getPoolV0WithdrawSignature(keyId: string, fromAddress: string, toAddress: string, amount: string) {
         // 해당 컨트랙트의 function selector를 가져오기 위해서
-        const addressRegistryContract = await this.getAddressRegistryContractInstance(keyId);
+        const poolContract = await this.getPoolV0ContractInstance(keyId);
         // sequence id를 가져오기 위해서
-        const poolV0Address = this.addressRegistryV0Address
+        const poolV0Address = this.poolV0Address
         // MultiSig에서 실행시킬 함수 data
-        const contractArguments = addressRegistryContract.interface.encodeFunctionData("withdraw(address,address,uin256)", [
+        const contractArguments = poolContract.interface.encodeFunctionData("withdraw(address,address,uin256)", [
             fromAddress,
             toAddress,
             amount
@@ -340,5 +358,27 @@ export class FilecoinContractService {
         return { poolV0Address, contractArguments }
 	}
 
+    async getPoolV0PayPrincipalSignature(keyId: string, toAddress: string) {
+        // 해당 컨트랙트의 function selector를 가져오기 위해서
+        const poolContract = await this.getPoolV0ContractInstance(keyId);
+        // sequence id를 가져오기 위해서
+        const poolV0Address = this.poolV0Address
+        // MultiSig에서 실행시킬 함수 data
+        const contractArguments = poolContract.interface.encodeFunctionData("payPrincipal(address)", [
+            toAddress
+        ]);
+		
+        return { poolV0Address, contractArguments }
+	}
+
     // -=-=- SP VAULT V0 -=-=-
+    async getVaultV0BorrowSignature(keyId: string, amount: string) {
+        const vaultContract = await this.getSPVaultV0ContractInstance(keyId);
+        const vaultV0Address = this.spVaultV0Address;
+        const contractArguments = vaultContract.interface.encodeFunctionData("borrow(uint256)", [
+            amount
+        ]);
+
+        return { vaultV0Address, contractArguments }
+    }
 }

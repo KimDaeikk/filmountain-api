@@ -13,7 +13,6 @@ export class DepositV0Dto {
 export class WithdrawV0Dto {
     msigExecuteKeyId: string;
     msigSigningKeyId: string;
-    msigTxIndex: string;
     fromEthAddress: string;
     toEthAddress: string;
     amount: string;
@@ -22,14 +21,19 @@ export class WithdrawV0Dto {
 export class SetAddressDto {
     msigExecuteKeyId: string;
     msigSigningKeyId: string;
-    msigTxIndex: string;
-    poolAddress: string;
+    address: string;
 }
 
 export class MsigTransferDto {
     msigExecuteKeyId: string;
     msigSigningKeyId: string;
-    msigTxIndex: string;
+    toAddress: string;
+    amount: string;
+}
+
+export class PayPrincipalV0Dto {
+    msigExecuteKeyId: string;
+    msigSigningKeyId: string;
     toAddress: string;
     amount: string;
 }
