@@ -122,14 +122,14 @@ export class FilecoinContractService {
         // 실행시키려는 MultiSig의 함수
         const contractArguments = contract.interface.encodeFunctionData("submitTransaction(address,uint256,bytes)", [
             toAddress,
-            amount,
+            ethers.parseEther(amount),
             // MultiSig에서 실행시킬 함수
             data
         ]);
         // MultiSig의 트랜잭션
         const tx = {
             to: this.multiSigAddress,
-            value: amount,
+            value: 0,
             gasLimit: this.gasLimit,
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
@@ -137,6 +137,7 @@ export class FilecoinContractService {
             chainId: this.chainId,
             data: contractArguments,
         }
+        console.log(tx)
 
         // 서명 및 전송
         const signedTransaction = await signer.signTransaction(tx);
@@ -158,8 +159,7 @@ export class FilecoinContractService {
 
     async confirmTransaction(
         keyId: string,
-        txIndex: string,
-        amount: string,
+        txIndex: string
     ) {
         const signer = await this.getSigner(keyId);
         const contract = await this.getMultiSigContractInstance(keyId);
@@ -172,7 +172,7 @@ export class FilecoinContractService {
         // MultiSig의 트랜잭션
         const tx = {
             to: this.multiSigAddress,
-            value: amount,
+            value: 0,
             gasLimit: this.gasLimit,
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,

@@ -25,10 +25,10 @@ export class FilecoinContractController {
 
 	@Post('/msig-transfer')
 	async multiSigTransfer(@Body() msigTransferDto: MsigTransferDto) {
-		const { msigExecuteKeyId, msigSigningKeyId,  toAddress, amount } = msigTransferDto;
-		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, toAddress, amount, "");
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
-		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
+		const { msigExecuteKeyId, msigSigningKeyId, toAddress, amount } = msigTransferDto;
+		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, toAddress, amount, "0x");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
+		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, amount);
 	}
 	
 	// -=-=-=-=-=-=-=-=-=-=-=- Filmountain USER TRANSACTION -=-=-=-=-=-=-=-=-=-=-=-
@@ -55,12 +55,12 @@ export class FilecoinContractController {
 	@ApiBody({ type: SetAddressDto })
 	async setPool(@Body() setAddressDto: SetAddressDto) {
 		const { msigExecuteKeyId, msigSigningKeyId, address } = setAddressDto
-		const { 
+		const {
 			addressRegistryAddress,
 			contractArguments
 		} = await this.filecoinContractService.getAddressRegistrySetPoolSignature(msigSigningKeyId, address);
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, addressRegistryAddress, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
 	}
 
@@ -73,7 +73,7 @@ export class FilecoinContractController {
 			contractArguments
 		} = await this.filecoinContractService.getAddressRegistrySetPoolSignature(msigSigningKeyId, address);
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, addressRegistryAddress, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
 	}
 
@@ -86,7 +86,7 @@ export class FilecoinContractController {
 			contractArguments
 		} = await this.filecoinContractService.getAddressRegistrySetPoolSignature(msigSigningKeyId, address);
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, addressRegistryAddress, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
 	}
 
@@ -98,7 +98,7 @@ export class FilecoinContractController {
 			contractArguments
 		} = await this.filecoinContractService.getUserRegistryAddUserSignature(msigSigningKeyId, address)
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, userRegistryAddress, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
 	}
 
@@ -109,7 +109,7 @@ export class FilecoinContractController {
 			contractArguments
 		} = await this.filecoinContractService.getUserRegistryRemoveUserSignature(msigSigningKeyId, address)
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, userRegistryAddress, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");
 	}
 
@@ -123,7 +123,7 @@ export class FilecoinContractController {
 			contractArguments
 		} = await this.filecoinContractService.getPoolV0WithdrawSignature(msigSigningKeyId, fromEthAddress, toEthAddress, amount);
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, poolV0Address, "0", contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, "0");
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, "0");	
 	}
 
@@ -136,7 +136,7 @@ export class FilecoinContractController {
 			contractArguments
 		} = await this.filecoinContractService.getPoolV0PayPrincipalSignature(msigSigningKeyId, toAddress);
 		const transactionIndex = await this.filecoinContractService.submitTransaction(msigExecuteKeyId, poolV0Address, amount, contractArguments);
-		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex, amount);
+		await this.filecoinContractService.confirmTransaction(msigSigningKeyId, transactionIndex);
 		await this.filecoinContractService.executeTransaction(msigExecuteKeyId, transactionIndex, amount);	
 	}
 
@@ -145,6 +145,8 @@ export class FilecoinContractController {
 
 	}
 
-	async pushFund() {}
+	async pushFund() {
+		
+	}
 
 }
